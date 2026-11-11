@@ -10,12 +10,50 @@ class CombinationAgent:
     def sigmoid(self, x):
         return 1 / (1 + math.exp(-x))
 
+    weights = [0.25, 0.35, 0.20, 0.15, 0.30, 0.25, 0.20, 0.10]
+    learning_rate = 0.01
+
+    def predict(combined):
+        z = 0.1
+        for w, x in zip(weights, combined):
+            z += w * x
+        return sigmoid(z)
+
+    training_examples = [
+        {
+            "weather_vector": [0.35, 0.70, 0.40, 1],
+            "route_vector": [0.30, 0.50, 0.25, 1],
+            "actual_time": 70
+        },
+        {
+            "weather_vector": [0.20, 0.10, 0.20, 0],
+            "route_vector": [0.20, 0.35, 0.10, 0],
+            "actual_time": 45
+        }
+    ]
+
+    for epoch in range(1000):
+        total_error = 0
+        for example in training_examples:
+            combined = example["weather_vector"] + example["route_vector"]
+            pred = predict(combined)
+            actual = example["actual_time"] / 100.0
+            error = pred - actual
+
+            total_error += error ** 2
+
+            for i in range(len(weights)):
+                weights[i] -= learning_rate * error * combined[i]
+
+        if epoch % 100 == 0:
+            print(f"epoch {epoch}: error = {total_error}")
+
     def combine_data(self):
         # combine the two vectors into one input vector
         combined = self.weather_vector + self.route_vector
 
         # simple neural net weights
-        weights = [0.25, 0.35, 0.20, 0.15, 0.30, 0.25, 0.20, 0.10]
+        
         bias = 0.1
 
         # compute weighted sum
