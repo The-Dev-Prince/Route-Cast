@@ -1,42 +1,25 @@
 import requests
 
+# Paste your actual key inside the quotes
+API_KEY = "bf128d55bea8090653e6c0b0fce93a5a"
 
-BASE_URL = "https://api.open-meteo.com/v1/forecast"
-
-
-def get_weather(lat, lon, timezone="auto"):
-    """Fetch current weather data for a given latitude and longitude.
-
-    Uses Open-Meteo, a free weather API that does not require an API key.
-    """
-    params = {
-        "latitude": lat,
-        "longitude": lon,
-        "current": "temperature_2m,precipitation,weather_code,wind_speed_10m",
-        "timezone": timezone,
-        "forecast_days": 1,
-    }
-
-    try:
-        response = requests.get(BASE_URL, params=params, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-    except requests.RequestException as exc:
-        raise RuntimeError(f"Could not fetch weather data: {exc}") from exc
-
-    current = data.get("current", {})
+def get_weather(lat, lon):
+    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=imperial"
+    
+    response = requests.get(url)
+    data = response.json()
+    
+    # Extract temperature and main weather condition
+    temp = data["main"]["temp"]
+    condition = data["weather"][0]["main"]
+    
     return {
-        "latitude": lat,
-        "longitude": lon,
-        "temperature_c": current.get("temperature_2m"),
-        "precipitation_mm": current.get("precipitation"),
-        "wind_speed_kph": current.get("wind_speed_10m"),
-        "weather_code": current.get("weather_code"),
-        "timezone": data.get("timezone"),
+        "temp": temp,
+        "condition": condition,
+        "raw": data
     }
 
-
+# Test with Salt Lake City coordinates
 if __name__ == "__main__":
-    # Example: downtown Salt Lake City
-    weather = get_weather(40.7608, -111.8910)
-    print(weather)
+    result = get_weather(40.7608, -111.8910)
+    print("API Response:", result)
