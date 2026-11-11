@@ -15,7 +15,7 @@ class WeatherAgent:
             # Fallback zero-vector if request fails
             return {
                 "status": "error",
-                "impact_vector": {
+                "weather_vector": {
                     "precipitation_score": 0.0,
                     "temperature_score": 0.0,
                     "visibility_score": 0.0,
@@ -72,7 +72,7 @@ class WeatherAgent:
         # --- Assemble Vector Payload ---
         return {
             "status": "success",
-            "impact_vector": {
+            "weather_vector": {
                 "precipitation_score": round(precip_score, 2),
                 "temperature_score": round(temp_score, 2),
                 "visibility_score": round(vis_score, 2),
