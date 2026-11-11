@@ -1,10 +1,13 @@
-from weather import WeatherClass
+from weather import WeatherAgent
 from route import RoutingAgent
 import math
 
 class CombinationAgent:
     def __init__(self, weather_data, route_data):
-        self.weather_data = weather_data
+        if "weather_vector" in weather_data:
+            self.weather_vector = list(weather_data["weather_vector"].values())
+        else:
+            self.weather_vector = list(weather_data.values())
         self.route_data = route_data
 
     def sigmoid(self, x):
