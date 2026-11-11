@@ -85,50 +85,72 @@ class RoutingAgent:
                 "steps": [step["html_instructions"] for step in leg.get("steps", [])]
             })
 
+        if not candidate_routes:
+            raise ValueError("Google Maps API returned no candidate routes")
+
         return {
             "status": "success",
             "origin": api_data["routes"][0]["legs"][0]["start_address"],
             "destination": api_data["routes"][0]["legs"][0]["end_address"],
-            "candidate_routes": candidate_routes
+            "candidate_routes": candidate_routes,
+            "route_vector": self._build_route_vector(candidate_routes)
         }
+
+    @staticmethod
+    def _build_route_vector(candidate_routes: List[Dict[str, Any]]) -> List[float]:
+        """Normalize the fastest candidate route into four combination-agent inputs."""
+        if not candidate_routes:
+            raise ValueError("At least one candidate route is required")
+
+        route = min(candidate_routes, key=lambda item: item["traffic_duration_mins"])
+        normal_duration = route["normal_duration_mins"]
+        return [
+            min(1.0, route["distance_km"] / 100.0),
+            min(1.0, route["traffic_duration_mins"] / 120.0),
+            min(1.0, route["traffic_delay_mins"] / 60.0),
+            min(1.0, route["traffic_delay_mins"] / normal_duration)
+            if normal_duration > 0 else 0.0
+        ]
 
     def _get_demo_routes(self, origin: str, destination: str) -> Dict[str, Any]:
         """
         Provides mock route data simulating the Google Maps Demo API output 
         for testing traffic and weather integration.
         """
+        candidate_routes = [
+            {
+                "route_id": 0,
+                "summary": "I-15 N (Main Highway)",
+                "distance_km": 42.5,
+                "normal_duration_mins": 35.0,
+                "traffic_duration_mins": 52.0,
+                "traffic_delay_mins": 17.0,
+                "steps": [
+                    "Head north on main corridor",
+                    "Merge onto I-15 N via the ramp to Salt Lake",
+                    "Take exit 305 for destination"
+                ]
+            },
+            {
+                "route_id": 1,
+                "summary": "State Route 89 (Canyon Alternative)",
+                "distance_km": 48.1,
+                "normal_duration_mins": 45.0,
+                "traffic_duration_mins": 48.0,
+                "traffic_delay_mins": 3.0,
+                "steps": [
+                    "Take local eastbound connectors",
+                    "Turn left onto State Route 89 N",
+                    "Follow signs to destination bypass"
+                ]
+            }
+        ]
         return {
             "status": "success_demo",
             "origin": origin,
             "destination": destination,
-            "candidate_routes": [
-                {
-                    "route_id": 0,
-                    "summary": "I-15 N (Main Highway)",
-                    "distance_km": 42.5,
-                    "normal_duration_mins": 35.0,
-                    "traffic_duration_mins": 52.0,
-                    "traffic_delay_mins": 17.0,
-                    "steps": [
-                        "Head north on main corridor",
-                        "Merge onto I-15 N via the ramp to Salt Lake",
-                        "Take exit 305 for destination"
-                    ]
-                },
-                {
-                    "route_id": 1,
-                    "summary": "State Route 89 (Canyon Alternative)",
-                    "distance_km": 48.1,
-                    "normal_duration_mins": 45.0,
-                    "traffic_duration_mins": 48.0,
-                    "traffic_delay_mins": 3.0,
-                    "steps": [
-                        "Take local eastbound connectors",
-                        "Turn left onto State Route 89 N",
-                        "Follow signs to destination bypass"
-                    ]
-                }
-            ]
+            "candidate_routes": candidate_routes,
+            "route_vector": self._build_route_vector(candidate_routes)
         }
 
 
