@@ -1,3 +1,4 @@
+import os
 import requests
 from typing import Dict, Any, List
 
@@ -26,7 +27,8 @@ class WeatherAgent:
             }
 
         # --- Extract Raw Metrics ---
-        weather_main = raw_json.get("weather", [{}])[0].get("main", "").lower()
+        weather_condition = raw_json.get("weather", [{}])[0].get("main", "Unknown")
+        weather_main = weather_condition.lower()
         temp_f = raw_json.get("main", {}).get("temp", 70.0)
         visibility_meters = raw_json.get("visibility", 10000)
         wind_speed_mph = raw_json.get("wind", {}).get("speed", 0.0)
@@ -81,6 +83,7 @@ class WeatherAgent:
             "hazards": hazards if hazards else ["Clear Conditions"],
             "raw_metrics": {
                 "temp_f": temp_f,
+                "condition": weather_condition,
                 "wind_speed_mph": wind_speed_mph,
                 "visibility_miles": round(vis_miles, 1),
                 "snow_1h_mm": snow_1h,
@@ -89,39 +92,28 @@ class WeatherAgent:
         }
 
 
-# --- QUICK TEST ---
-sample_snow_payload = {
-    "weather": [{"main": "Snow"}],
-    "main": {"temp": 24.0},
-    "visibility": 2000,
-    "wind": {"speed": 28.0},
-    "snow": {"1h": 2.5},
-    "cod": 200
-}
+def get_weather(lat: float, lon: float) -> Dict[str, Any]:
+    """Fetch current weather, returning clearly marked sample data when unconfigured."""
+    api_key = os.getenv("OPENWEATHER_API_KEY")
+    if not api_key:
+        return {
+            "weather": [{"main": "Clear", "description": "clear sky"}],
+            "main": {"temp": 62.0},
+            "visibility": 10000,
+            "wind": {"speed": 8.0},
+            "cod": 200,
+            "_demo": True
+        }
 
-output = WeatherAgent.calculate_impact_vector(sample_snow_payload)
-print(output)
-
-# Paste your actual key inside the quotes
-API_KEY = "bf128d55bea8090653e6c0b0fce93a5a"
-
-def get_weather(lat, lon):
-    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=imperial"
-    
-    response = requests.get(url)
+    response = requests.get(
+        "https://api.openweathermap.org/data/2.5/weather",
+        params={"lat": lat, "lon": lon, "appid": api_key, "units": "imperial"},
+        timeout=10
+    )
+    response.raise_for_status()
     data = response.json()
-    
-    # Extract temperature and main weather condition
-    temp = data["main"]["temp"]
-    condition = data["weather"][0]["main"]
-    
-    return {
-        "temp": temp,
-        "condition": condition,
-        "raw": data
-    }
-
-# Test with Salt Lake City coordinates
-if __name__ == "__main__":
-    result = get_weather(40.7608, -111.8910)
-    print("API Response:", result)
+    if data.get("cod") != 200:
+        raise requests.HTTPError(
+            f"OpenWeatherMap API error: {data.get('message', data.get('cod'))}"
+        )
+    return data

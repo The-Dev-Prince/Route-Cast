@@ -18,7 +18,7 @@ class RoutingAgent:
         :param api_key: Google Maps API key. If None, checks environment variables.
         :param use_demo: If True, forces the use of mock/demo route data without making external API calls.
         """
-        self.api_key = api_key or os.getenv("AIzaSyCjZcHLk1WYBCYjL2fsjC1F806ro221UY8")
+        self.api_key = api_key or os.getenv("GOOGLE_MAPS_API_KEY")
         self.use_demo = use_demo or not self.api_key
         self.base_url = "https://maps.googleapis.com/maps/api/directions/json"
 
@@ -48,8 +48,8 @@ class RoutingAgent:
 
             return self._process_api_response(data)
 
-        except Exception as e:
-            print(f"Warning: Failed to reach Google Maps API ({e}). Falling back to demo route data.")
+        except (requests.RequestException, ValueError, KeyError, IndexError, TypeError):
+            print("Warning: Failed to reach Google Maps API. Falling back to demo route data.")
             return self._get_demo_routes(origin, destination)
 
     def _process_api_response(self, api_data: Dict[Any, Any]) -> Dict[str, Any]:

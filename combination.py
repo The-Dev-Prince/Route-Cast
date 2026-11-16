@@ -195,6 +195,7 @@ class CombinationAgent:
                 "estimated_time_minutes": round(adjusted_time, 2),
                 "risk_score": round(risk_score, 4),
                 "utility_score": utility_score,
+                "steps": route.get("steps", []),
                 "route_vector": r_vec
             })
 
